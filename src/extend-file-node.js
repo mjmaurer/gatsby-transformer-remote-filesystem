@@ -1,41 +1,53 @@
-const { GraphQLString } = require(`gatsby/graphql`)
-const fs = require(`fs-extra`)
-const path = require(`path`)
+const { GraphQLString } = require('gatsby/graphql');
+const fs = require('fs-extra');
+const path = require('path');
 
-module.exports = ({ type, getNodeAndSavePathDependency, pathPrefix = `` }) => {
-  if (type.name !== `File`) {
-    return {}
+module.exports = (
+  { type, getNodeAndSavePathDependency, pathPrefix = '' },
+  pluginOptions,
+) => {
+  if (type.name !== 'File') {
+    return {};
   }
 
   return {
-    publicURL: {
+    localURL: {
       type: GraphQLString,
       args: {},
-      description: `Copy file to static directory and return public url to it`,
+      description: 'Copy file to static directory and return public url to it',
       resolve: (file, fieldArgs, context) => {
-        const details = getNodeAndSavePathDependency(file.id, context.path)
-        const fileName = `${file.name}-${file.internal.contentDigest}${details.ext}`
+        const details = getNodeAndSavePathDependency(file.id, context.path);
+        const parentDir = pluginOptions.fingerprintDirectory
+          ? file.internal.contentDigest
+          : '';
+        const fileName = pluginOptions.fingerprintDirectory
+          ? `${file.name}${details.ext}`
+          : `${file.name}-${file.internal.contentDigest}${details.ext}`;
 
-        const publicPath = path.join(
-          process.cwd(),
-          `public`,
-          `static`,
-          fileName
-        )
+        const dirPath = path.join(process.cwd(), 'public', 'static', parentDir);
+        const publicPath = path.join(dirPath, fileName);
+        const shouldProcess = pluginOptions.mediaTypes
+          ? pluginOptions.mediaTypes.includes(file.internal.mediaType)
+          : true;
 
-        if (!fs.existsSync(publicPath)) {
-          fs.copy(details.absolutePath, publicPath, err => {
+        if (shouldProcess && !fs.existsSync(publicPath)) {
+          fs.ensureDirSync(dirPath);
+          fs.copy(details.absolutePath, publicPath, (err) => {
             if (err) {
               console.error(
                 `error copying file from ${details.absolutePath} to ${publicPath}`,
-                err
-              )
+                err,
+              );
             }
-          })
+          });
+        } else if (!shouldProcess) {
+          return null;
         }
 
-        return `${pathPrefix}/static/${fileName}`
+        return pluginOptions.fingerprintDirectory
+          ? `${pathPrefix}/static/${parentDir}/${fileName}`
+          : `${pathPrefix}/static/${fileName}`;
       },
     },
-  }
-}
+  };
+};

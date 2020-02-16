@@ -1,1 +1,1 @@
-exports.setFieldsOnGraphQLNodeType = require(`./extend-file-node`)
+exports.setFieldsOnGraphQLNodeType = require('./extend-file-node');
