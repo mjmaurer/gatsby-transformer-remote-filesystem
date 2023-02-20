@@ -33,7 +33,7 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "gatsby": "^2.2.0"
+    "gatsby": ">=2.2.0"
   },
   "repository": {
     "type": "git",
